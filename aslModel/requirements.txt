@@ -1,3 +1,4 @@
 opencv-python
 inference-sdk
-aiortc==1.10.1
+aiortc==1.13.0
+av==14.2.0
