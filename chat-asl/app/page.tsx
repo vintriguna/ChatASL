@@ -1,64 +1,99 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "error">("connecting");
+
+  useEffect(() => {
+    const streamUrl = "http://127.0.0.1:8000/video_feed";
+    let isMounted = true;
+
+    const connectStream = () => {
+      if (!isMounted) return;
+
+      // Use img tag with a random cache buster to force reload frames
+      const img = imgRef.current;
+      if (img) {
+        img.onerror = () => {
+          if (isMounted) {
+            setConnectionStatus("error");
+            setTimeout(connectStream, 2000);
+          }
+        };
+        img.onload = () => {
+          if (isMounted) {
+            setConnectionStatus("connected");
+          }
+        };
+        img.src = streamUrl + "?t=" + Date.now();
+      }
+    };
+
+    connectStream();
+
+    return () => {
+      isMounted = false;
+      if (imgRef.current) {
+        imgRef.current.src = "";
+      }
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#ffe8b8_0%,#f6f9ff_38%,#eef3ff_100%)] px-6 py-10 text-slate-900">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+        <header className="flex flex-col gap-3">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-700">
+            CitrusHack 2026
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          <h1 className="text-4xl font-black tracking-tight sm:text-5xl">ChatASL Live Vision</h1>
+          <p className="max-w-2xl text-base text-slate-700 sm:text-lg">
+            Run the Python model and this page will show the annotated camera stream in real time.
+          </p>
+        </header>
+
+        <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+          <div className="overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-3 shadow-[0_20px_80px_rgba(15,23,42,0.16)] backdrop-blur">
+            <div className="rounded-2xl bg-slate-950 p-2 relative">
+              <img
+                ref={imgRef}
+                alt="ASL model stream"
+                className="h-auto w-full rounded-xl bg-black"
+                style={{ minHeight: "480px" }}
+              />
+              <p
+                className={`absolute bottom-6 left-6 px-3 py-1 rounded-full text-xs font-medium ${
+                  connectionStatus === "connected"
+                    ? "bg-green-500/90 text-white"
+                    : connectionStatus === "connecting"
+                      ? "bg-amber-500/90 text-white"
+                      : "bg-red-500/90 text-white"
+                }`}
+              >
+                {connectionStatus === "connected"
+                  ? "✓ Connected"
+                  : connectionStatus === "connecting"
+                    ? "◌ Connecting..."
+                    : "✕ Error"}
+              </p>
+            </div>
+          </div>
+
+          <aside className="rounded-3xl border border-white/70 bg-white/85 p-6 shadow-[0_20px_70px_rgba(30,41,59,0.12)] backdrop-blur">
+            <h2 className="text-xl font-bold text-slate-900">How To Use</h2>
+            <ol className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
+              <li>1. Start the web app with npm run dev in chat-asl.</li>
+              <li>2. Run .venv/bin/python model.py in aslModel.</li>
+              <li>3. Keep both running to view live detections here.</li>
+            </ol>
+            <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+              If the stream is blank, make sure the Python process is active and webcam permissions are allowed.
+            </p>
+            <p className="mt-4 text-xs text-slate-500">Stream: http://127.0.0.1:8000/video_feed</p>
+          </aside>
+        </section>
       </main>
     </div>
   );
