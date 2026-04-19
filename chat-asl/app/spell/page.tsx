@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useCallback } from "react";
+import { Suspense, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useWebcam } from "../hooks/useWebcam";
@@ -14,7 +14,7 @@ const LETTER_GROUPS = {
   uz: LETTERS.slice(20),
 } as const;
 
-const WORD_BANK = [
+const DEFAULT_WORD_BANK = [
   "CAT",
   "DOG",
   "SUN",
@@ -29,7 +29,6 @@ const WORD_BANK = [
   "HOUSE",
   "DAD",
   "FACE",
-  "JIG",
   "HILL",
   "NOON",
   "STOP",
@@ -67,13 +66,13 @@ function wordFitsGroup(word: string, group: LetterGroup): boolean {
   return word.split("").every((letter) => groupLetters.has(letter));
 }
 
-function getWordPoolForGroup(group: LetterGroup): readonly string[] {
-  const filtered = WORD_BANK.filter((word) => wordFitsGroup(word, group));
-  return filtered.length > 0 ? filtered : WORD_BANK;
+function getWordPoolForGroup(group: LetterGroup, bank: readonly string[]): readonly string[] {
+  const filtered = bank.filter((word) => wordFitsGroup(word, group));
+  return filtered.length > 0 ? filtered : bank;
 }
 
-function getRandomWordForGroup(group: LetterGroup, exclude?: string): string {
-  return randomItem(getWordPoolForGroup(group), exclude);
+function getRandomWordForGroup(group: LetterGroup, bank: readonly string[], exclude?: string): string {
+  return randomItem(getWordPoolForGroup(group, bank), exclude);
 }
 
 function getGroupLabel(group: LetterGroup): string {
@@ -113,11 +112,82 @@ function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
 }
 
 function SpellPageContent({ letterGroup }: { letterGroup: LetterGroup }) {
-  const [spellWord, setSpellWord] = useState(() => getRandomWordForGroup(letterGroup));
+  const [wordBank, setWordBank] = useState<readonly string[]>(() =>
+    getWordPoolForGroup(letterGroup, DEFAULT_WORD_BANK)
+  );
+  const [spellWord, setSpellWord] = useState(() =>
+    getRandomWordForGroup(letterGroup, getWordPoolForGroup(letterGroup, DEFAULT_WORD_BANK))
+  );
   const [spellIndex, setSpellIndex] = useState(0);
   const [status, setStatus] = useState<Status>("idle");
   const [prediction, setPrediction] = useState<Prediction | null>(null);
+  const [isGeneratingWords, setIsGeneratingWords] = useState(true);
+  const [wordError, setWordError] = useState<string | null>(null);
   const { videoRef, captureFrame } = useWebcam();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadWords = async () => {
+      setIsGeneratingWords(true);
+      setWordError(null);
+
+      try {
+        const res = await fetch("/api/gemini-prompt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            wordCount: 20,
+            prompt: `Only include words that are fully spellable using this letter set: ${getGroupLabel(letterGroup)}.`,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Could not generate words right now");
+        }
+
+        const data = (await res.json()) as { words?: string[] };
+        console.log("[SpellMode] Gemini words:", data.words ?? []);
+
+        const generated = (data.words ?? [])
+          .map((word) => word.toUpperCase())
+          .filter((word) => /^[A-IK-Y]{4}$/.test(word));
+
+        const nextPool = getWordPoolForGroup(
+          letterGroup,
+          generated.length > 0 ? generated : DEFAULT_WORD_BANK
+        );
+
+        if (cancelled) return;
+
+        setWordBank(nextPool);
+        setSpellWord(randomItem(nextPool));
+        setSpellIndex(0);
+        setStatus("idle");
+        setPrediction(null);
+      } catch {
+        const fallbackPool = getWordPoolForGroup(letterGroup, DEFAULT_WORD_BANK);
+        if (cancelled) return;
+
+        setWordError("Using fallback words while Gemini is unavailable.");
+        setWordBank(fallbackPool);
+        setSpellWord(randomItem(fallbackPool));
+        setSpellIndex(0);
+        setStatus("idle");
+        setPrediction(null);
+      } finally {
+        if (!cancelled) {
+          setIsGeneratingWords(false);
+        }
+      }
+    };
+
+    loadWords();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [letterGroup]);
 
   const expectedLetter = spellWord[spellIndex] ?? "A";
 
@@ -185,18 +255,39 @@ function SpellPageContent({ letterGroup }: { letterGroup: LetterGroup }) {
   }, [spellIndex, spellWord.length]);
 
   const handleSkipWord = useCallback(() => {
-    setSpellWord((prev) => getRandomWordForGroup(letterGroup, prev));
+    setSpellWord((prev) => randomItem(wordBank, prev));
     setSpellIndex(0);
     setStatus("idle");
     setPrediction(null);
-  }, [letterGroup]);
+  }, [wordBank]);
 
   const handleNextWord = useCallback(() => {
-    setSpellWord((prev) => getRandomWordForGroup(letterGroup, prev));
+    setSpellWord((prev) => randomItem(wordBank, prev));
     setSpellIndex(0);
     setStatus("idle");
     setPrediction(null);
-  }, [letterGroup]);
+  }, [wordBank]);
+
+  if (isGeneratingWords) {
+    return (
+      <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 py-12">
+        <div className="w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center">
+          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
+            Set: {getGroupLabel(letterGroup)}
+          </p>
+          <h1 className="mt-3 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+            Generating Words
+          </h1>
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+            Building a personalized spell list based on your letter stats...
+          </p>
+          <div className="mt-6 flex items-center justify-center">
+            <div className="h-10 w-10 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-800 dark:border-zinc-700 dark:border-t-zinc-100" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 py-12">
@@ -239,6 +330,10 @@ function SpellPageContent({ letterGroup }: { letterGroup: LetterGroup }) {
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             Letter {spellIndex + 1} of {spellWord.length}
           </p>
+
+          {wordError && (
+            <p className="text-xs text-amber-700 dark:text-amber-300">{wordError}</p>
+          )}
 
           <span className="text-[7rem] leading-none font-bold text-zinc-900 dark:text-zinc-50 select-none">
             {expectedLetter}
