@@ -91,6 +91,12 @@ export default async function Home() {
           >
             Translate Mode
           </Link>
+          <Link
+            href="/glossary"
+            className="flex h-14 items-center justify-center rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-base font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            Glossary
+          </Link>
         </div>
 
         <form action={signOut}>

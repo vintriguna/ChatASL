@@ -10,18 +10,19 @@ The app is focused on ASL letter recognition for a hackathon MVP, not full ASL s
 
 ## Main Modes
 
-1. Practice Mode
+1. Practice Mode — freeform, infinite, tracks attempts via `/api/attempts`
+2. Quiz Mode — 5-letter sessions, saved to `sessions` + `attempts` tables via `/api/sessions`
+3. Learn Mode — shows Wikimedia Commons SVG reference images alongside webcam (`/learn/play`)
+4. Translate Mode — confirm-before-add flow, accumulates text, has Speak (Web Speech API) button
+5. Spell Mode — linked from home, page exists at `/spell`
 
-- Show the user a target letter
-- Use webcam input to detect the signed letter
-- Compare prediction to target
-- Give simple feedback: correct/incorrect, detected letter, confidence if available
+## Database Schema (Supabase)
 
-2. Translate Mode
+Tables: `sessions`, `attempts`, `letter_stats`, `user_streaks`
 
-- Let the user sign letters one at a time
-- Convert predictions into text output
-- Support simple controls like add letter, delete, clear, and optional text-to-speech
+- `letter_stats` — per-user per-letter correct/incorrect counts, updated via `increment_letter_stats` RPC
+- `user_streaks` — current and longest streak, updated via `update_streak` RPC (fires on any attempt or session save)
+- All tables have RLS enabled; users can only access their own rows
 
 ## ML / Inference Assumptions
 
@@ -82,6 +83,14 @@ Prefer:
 - large webcam and prediction UI
 - fast feedback
 - minimal clutter
+
+## Vercel Deployment Notes
+
+- **Root Directory must be set to `chat-asl`** in the Vercel project dashboard — the repo root contains other folders and Vercel will fail to resolve modules otherwise
+- The proxy file is `proxy.ts` (not `middleware.ts`) — Next.js 16 renamed the convention; the function export must be named `proxy`
+- `@supabase/ssr` must not be imported in `proxy.ts` — it uses Node.js APIs incompatible with the Edge Runtime; use a cookie presence check instead
+- `serverExternalPackages: ["ua-parser-js"]` is set in `next.config.ts` to prevent a bundled Next.js dependency from crashing the Edge Runtime
+- Roboflow API key is hardcoded in `/api/predict/route.ts` — should be moved to `.env.local` before any public exposure
 
 ## Output Style
 
