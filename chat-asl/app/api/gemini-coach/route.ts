@@ -23,6 +23,18 @@ interface GeminiResponse {
   }>;
 }
 
+interface GeminiErrorResponse {
+  error?: {
+    code?: number;
+    message?: string;
+    status?: string;
+    details?: Array<{
+      "@type"?: string;
+      retryDelay?: string;
+    }>;
+  };
+}
+
 function parseDataUrl(image: string) {
   const match = image.match(/^data:(.+);base64,(.*)$/);
   if (!match) {
@@ -148,8 +160,26 @@ export async function POST(request: NextRequest) {
 
   if (!geminiRes.ok) {
     const text = await geminiRes.text();
+    let message = "Gemini request failed";
+    let retryDelay: string | undefined;
+
+    try {
+      const errorData = JSON.parse(text) as GeminiErrorResponse;
+      message = errorData.error?.message ?? message;
+      retryDelay = errorData.error?.details?.find((detail) => detail.retryDelay)?.retryDelay;
+    } catch {
+      message = text || message;
+    }
+
     return Response.json(
-      { error: "Gemini request failed", detail: text },
+      {
+        error:
+          geminiRes.status === 429
+            ? "Gemini quota exceeded. Try again later or use a key/project with available quota."
+            : message,
+        detail: message,
+        retryDelay,
+      },
       { status: geminiRes.status }
     );
   }
