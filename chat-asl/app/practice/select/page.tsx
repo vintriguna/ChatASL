@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 const GROUP_OPTIONS = [
   { key: "af", label: "A-F", subtitle: "Practice letters A through F" },
   { key: "gm", label: "G-M", subtitle: "Practice letters G through M" },
