@@ -23,7 +23,7 @@ function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
   const conf = typeof top.confidence === "number" ? top.confidence : 0;
   if (!cls) return null;
   const letter = cls.toUpperCase();
-  if (letter === "J" || letter === "Z") return "empty"; // motion-based, undetectable by static classifier
+  if (letter === "J" || letter === "Z") return "empty";
   return { letter, confidence: Math.round(conf * 100) };
 }
 
@@ -38,25 +38,19 @@ export default function TranslatePage() {
   const handleCapture = useCallback(async () => {
     const frame = captureFrame();
     if (!frame) return;
-
     setStatus("loading");
     setPreview(null);
-
     try {
       const res = await fetch("/api/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: frame }),
       });
-
       if (!res.ok) { setStatus("error"); return; }
-
       const data: unknown = await res.json();
       const pred = parseRoboflowResponse(data);
-
       if (pred === null) { setStatus("error"); return; }
       if (pred === "empty") { setStatus("nodetection"); return; }
-
       setPreview(pred);
       setStatus("previewing");
     } catch {
@@ -99,31 +93,19 @@ export default function TranslatePage() {
   const isPreviewing = status === "previewing";
 
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 py-12">
+    <div className="flex flex-col flex-1 items-center justify-center bg-surface px-4 py-12">
       <div className="w-full max-w-md flex flex-col gap-6">
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-          >
-            ← Back
-          </Link>
-          <h1 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">
-            Translate Mode
-          </h1>
-          <div className="w-12" />
-        </div>
+        <h1 className="font-display text-2xl font-bold text-on-surface">Translate</h1>
 
         {/* Text display */}
-        <div className="min-h-20 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-5 py-4 flex items-center">
+        <div className="min-h-20 card-sm flex items-center">
           {text ? (
-            <span className="text-3xl font-bold tracking-widest text-zinc-900 dark:text-zinc-50 break-all">
+            <span className="font-display text-3xl font-bold tracking-widest text-on-surface break-all">
               {text}
             </span>
           ) : (
-            <span className="text-base text-zinc-400 dark:text-zinc-500">
+            <span className="text-base text-on-surface-variant">
               Sign a letter and press Capture…
             </span>
           )}
@@ -133,13 +115,13 @@ export default function TranslatePage() {
         <button
           onClick={handleSpeak}
           disabled={!text.trim()}
-          className="w-full h-12 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
+          className="btn-secondary w-full h-12 text-sm"
         >
           Speak
         </button>
 
         {/* Webcam */}
-        <div className="relative w-full overflow-hidden rounded-2xl bg-zinc-900 aspect-video">
+        <div className="relative w-full overflow-hidden rounded-[2rem] bg-zinc-900 ghost-border ambient-shadow aspect-video">
           <video
             ref={videoRef}
             autoPlay
@@ -148,24 +130,24 @@ export default function TranslatePage() {
             className="w-full h-full object-cover scale-x-[-1]"
           />
           {status === "loading" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-              <span className="text-white text-sm font-medium">Detecting…</span>
+            <div className="absolute inset-0 flex items-center justify-center glass rounded-[2rem]">
+              <span className="text-on-surface text-sm font-medium">Detecting…</span>
             </div>
           )}
           {isPreviewing && preview && (
-            <div className="absolute bottom-3 right-3 rounded-xl bg-black/60 px-3 py-1.5 flex items-center gap-2">
-              <span className="text-white text-xl font-bold">{preview.letter}</span>
+            <div className="absolute bottom-3 right-3 rounded-[1.5rem] glass px-3 py-1.5 flex items-center gap-2">
+              <span className="font-display text-on-surface text-xl font-bold">{preview.letter}</span>
               {preview.confidence > 0 && (
-                <span className="text-zinc-300 text-xs">{preview.confidence}%</span>
+                <span className="text-on-surface-variant text-xs">{preview.confidence}%</span>
               )}
             </div>
           )}
         </div>
 
-        {/* Error / no detection banner */}
+        {/* Error / no detection */}
         {(status === "nodetection" || status === "error") && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950 px-5 py-3">
-            <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+          <div className="rounded-[2rem] bg-amber-50 px-5 py-3">
+            <p className="text-sm font-medium text-amber-700">
               {status === "nodetection"
                 ? "No sign detected — make sure your hand is visible."
                 : "Something went wrong — try again."}
@@ -178,7 +160,7 @@ export default function TranslatePage() {
           <button
             onClick={handleCapture}
             disabled={status === "loading"}
-            className="w-full h-14 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-base font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
+            className="btn-primary w-full h-14 text-base"
           >
             {status === "loading" ? "Detecting…" : "Capture"}
           </button>
@@ -186,13 +168,13 @@ export default function TranslatePage() {
           <div className="flex gap-3">
             <button
               onClick={handleConfirm}
-              className="flex-1 h-14 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-base font-semibold hover:opacity-90 transition-opacity"
+              className="btn-primary flex-1 h-14 text-base"
             >
               Add {preview?.letter}
             </button>
             <button
               onClick={handleRetry}
-              className="flex-1 h-14 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-base font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="btn-secondary flex-1 h-14 text-base"
             >
               Retry
             </button>
@@ -201,24 +183,13 @@ export default function TranslatePage() {
 
         {/* Secondary controls */}
         <div className="grid grid-cols-3 gap-3">
-          <button
-            onClick={handleSpace}
-            className="h-12 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
+          <button onClick={handleSpace} className="btn-secondary h-12 text-sm">
             Space
           </button>
-          <button
-            onClick={handleDelete}
-            disabled={text.length === 0}
-            className="h-12 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
-          >
+          <button onClick={handleDelete} disabled={text.length === 0} className="btn-secondary h-12 text-sm">
             Delete
           </button>
-          <button
-            onClick={handleClear}
-            disabled={text.length === 0}
-            className="h-12 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
-          >
+          <button onClick={handleClear} disabled={text.length === 0} className="btn-secondary h-12 text-sm">
             Clear
           </button>
         </div>

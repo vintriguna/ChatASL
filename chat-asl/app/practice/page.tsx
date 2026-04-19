@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 const GROUP_OPTIONS = [
   { key: "af", label: "A-F", subtitle: "Practice letters A through F" },
   { key: "gm", label: "G-M", subtitle: "Practice letters G through M" },
@@ -9,23 +10,18 @@ const GROUP_OPTIONS = [
 
 export default function PracticeSelectionPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 py-12">
+    <div className="flex flex-col flex-1 items-center justify-center bg-surface px-4 py-12">
       <div className="w-full max-w-md flex flex-col gap-6">
         <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-          >
-            {"<- Back"}
+          <Link href="/" className="text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+            {"← Back"}
           </Link>
-          <h1 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">
-            Letter Sets
-          </h1>
+          <h1 className="font-display text-xl font-bold text-on-surface">Letter Sets</h1>
           <div className="w-12" />
         </div>
 
-        <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5">
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <div className="card-sm">
+          <p className="text-sm text-on-surface-variant">
             Choose which letters you want to practice.
           </p>
         </div>
@@ -35,14 +31,10 @@ export default function PracticeSelectionPage() {
             <Link
               key={option.key}
               href={`/practice/play?group=${option.key}`}
-              className="rounded-2xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-4 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="card-sm block hover:scale-[1.01] transition-transform"
             >
-              <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
-                {option.label}
-              </p>
-              <p className="text-sm text-zinc-600 dark:text-zinc-300">
-                {option.subtitle}
-              </p>
+              <p className="font-display text-base font-bold text-on-surface">{option.label}</p>
+              <p className="text-sm text-on-surface-variant">{option.subtitle}</p>
             </Link>
           ))}
         </div>

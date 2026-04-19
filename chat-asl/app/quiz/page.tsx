@@ -62,25 +62,19 @@ export default function QuizPage() {
   const handleCheck = useCallback(async () => {
     const frame = captureFrame();
     if (!frame) return;
-
     setCheckStatus("loading");
     setCurrentPrediction(null);
-
     try {
       const res = await fetch("/api/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: frame }),
       });
-
       if (!res.ok) { setCheckStatus("error"); return; }
-
       const data: unknown = await res.json();
       const pred = parseRoboflowResponse(data);
-
       if (pred === null) { setCheckStatus("error"); return; }
       if (pred === "empty") { setCheckStatus("nodetection"); return; }
-
       setCurrentPrediction(pred);
       setCheckStatus(pred.letter === target ? "correct" : "incorrect");
     } catch {
@@ -126,52 +120,49 @@ export default function QuizPage() {
   if (phase === "summary") {
     const correctCount = attempts.filter((a) => a.isCorrect).length;
     return (
-      <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 py-12">
+      <div className="flex flex-col flex-1 items-center justify-center bg-surface px-4 py-12">
         <div className="w-full max-w-md flex flex-col gap-6">
           <div className="text-center flex flex-col gap-1">
-            <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Session Complete</h2>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+            <h2 className="font-display text-3xl font-bold text-on-surface">Session Complete</h2>
+            <p className="text-on-surface-variant text-sm">
               {saving ? "Saving…" : saveError ?? "Results saved."}
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-6 py-5 flex flex-col items-center gap-1">
-            <span className="text-5xl font-bold text-zinc-900 dark:text-zinc-50">
+          <div className="card flex flex-col items-center gap-1">
+            <span className="font-display text-6xl font-bold text-on-surface">
               {correctCount}/{SESSION_LENGTH}
             </span>
-            <span className="text-zinc-500 dark:text-zinc-400 text-sm">correct</span>
+            <span className="text-on-surface-variant text-sm">correct</span>
           </div>
 
           <div className="flex flex-col gap-2">
             {attempts.map((a, i) => (
               <div
                 key={i}
-                className={`flex items-center justify-between rounded-xl px-4 py-3 border ${
-                  a.isCorrect
-                    ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800"
-                    : "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
+                className={`flex items-center justify-between rounded-[1.5rem] px-4 py-3 ${
+                  a.isCorrect ? "bg-green-50" : "bg-red-50"
                 }`}
               >
-                <span className="font-semibold text-zinc-900 dark:text-zinc-50">{a.targetLetter}</span>
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                <span className="font-display font-semibold text-on-surface">{a.targetLetter}</span>
+                <span className="text-sm text-on-surface-variant">
                   {a.detectedLetter ? `Detected: ${a.detectedLetter}` : "Not detected"}
                   {a.confidence ? ` (${a.confidence}%)` : ""}
                 </span>
-                <span>{a.isCorrect ? "✓" : "✗"}</span>
+                <span className={a.isCorrect ? "text-tertiary font-bold" : "text-error font-bold"}>
+                  {a.isCorrect ? "✓" : "✗"}
+                </span>
               </div>
             ))}
           </div>
 
           <div className="flex flex-col gap-3">
-            <button
-              onClick={handleRetry}
-              className="w-full h-12 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
+            <button onClick={handleRetry} className="btn-primary w-full h-12 text-sm">
               Try Again
             </button>
             <Link
               href="/"
-              className="flex h-12 items-center justify-center rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="flex h-12 items-center justify-center btn-secondary text-sm"
             >
               Home
             </Link>
@@ -182,40 +173,34 @@ export default function QuizPage() {
   }
 
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 py-12">
+    <div className="flex flex-col flex-1 items-center justify-center bg-surface px-4 py-12">
       <div className="w-full max-w-md flex flex-col gap-6">
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200">
-            ← Back
-          </Link>
-          <h1 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Quiz Mode</h1>
-          <span className="text-sm text-zinc-500 dark:text-zinc-400">
+        {/* Progress bar + counter */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-2 rounded-full bg-surface-container-high">
+            <div
+              className="h-2 rounded-full bg-primary transition-all"
+              style={{ width: `${((currentIndex) / SESSION_LENGTH) * 100}%` }}
+            />
+          </div>
+          <span className="text-sm text-on-surface-variant shrink-0">
             {currentIndex + 1}/{SESSION_LENGTH}
           </span>
         </div>
 
-        {/* Progress bar */}
-        <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800">
-          <div
-            className="h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-50 transition-all"
-            style={{ width: `${((currentIndex) / SESSION_LENGTH) * 100}%` }}
-          />
-        </div>
-
         {/* Target letter */}
-        <div className="flex flex-col items-center gap-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 py-6">
-          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
+        <div className="card flex flex-col items-center gap-1">
+          <p className="text-sm font-medium text-on-surface-variant uppercase tracking-widest">
             Sign this letter
           </p>
-          <span className="text-[8rem] leading-none font-bold text-zinc-900 dark:text-zinc-50 select-none">
+          <span className="font-display text-[8rem] leading-none font-bold text-on-surface select-none">
             {target}
           </span>
         </div>
 
         {/* Webcam */}
-        <div className="relative w-full overflow-hidden rounded-2xl bg-zinc-900 aspect-video">
+        <div className="relative w-full overflow-hidden rounded-[2rem] bg-zinc-900 ghost-border ambient-shadow aspect-video">
           <video
             ref={videoRef}
             autoPlay
@@ -224,8 +209,8 @@ export default function QuizPage() {
             className="w-full h-full object-cover scale-x-[-1]"
           />
           {checkStatus === "loading" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-              <span className="text-white text-sm font-medium">Checking…</span>
+            <div className="absolute inset-0 flex items-center justify-center glass rounded-[2rem]">
+              <span className="text-on-surface text-sm font-medium">Checking…</span>
             </div>
           )}
         </div>
@@ -234,7 +219,7 @@ export default function QuizPage() {
         <button
           onClick={handleCheck}
           disabled={checkStatus === "loading"}
-          className="w-full h-14 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-base font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
+          className="btn-primary w-full h-14 text-base"
         >
           {checkStatus === "loading" ? "Checking…" : "Check My Sign"}
         </button>
@@ -242,29 +227,29 @@ export default function QuizPage() {
         {/* Feedback */}
         {(checkStatus === "correct" || checkStatus === "incorrect" || checkStatus === "nodetection" || checkStatus === "error") && (
           <div
-            className={`rounded-2xl border px-5 py-4 flex flex-col gap-2 ${
+            className={`rounded-[2rem] px-5 py-4 flex flex-col gap-2 ${
               checkStatus === "correct"
-                ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800"
+                ? "bg-green-50"
                 : checkStatus === "incorrect"
-                ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
-                : "bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800"
+                ? "bg-red-50"
+                : "bg-amber-50"
             }`}
           >
             {checkStatus === "error" ? (
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Something went wrong — try again.</p>
+              <p className="text-sm font-medium text-amber-700">Something went wrong — try again.</p>
             ) : checkStatus === "nodetection" ? (
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-300">No sign detected — make sure your hand is visible.</p>
+              <p className="text-sm font-medium text-amber-700">No sign detected — make sure your hand is visible.</p>
             ) : (
               <>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-600 dark:text-zinc-300">
-                    Detected: <span className="font-bold text-zinc-900 dark:text-zinc-50">{currentPrediction?.letter}</span>
+                  <span className="text-sm text-on-surface-variant">
+                    Detected: <span className="font-bold text-on-surface">{currentPrediction?.letter}</span>
                   </span>
                   {currentPrediction && currentPrediction.confidence > 0 && (
-                    <span className="text-sm text-zinc-500">{currentPrediction.confidence}%</span>
+                    <span className="text-sm text-on-surface-variant">{currentPrediction.confidence}%</span>
                   )}
                 </div>
-                <p className={`text-base font-semibold ${checkStatus === "correct" ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"}`}>
+                <p className={`text-base font-semibold ${checkStatus === "correct" ? "text-tertiary" : "text-error"}`}>
                   {checkStatus === "correct" ? "✓ Correct!" : "✗ Incorrect"}
                 </p>
               </>
@@ -274,10 +259,7 @@ export default function QuizPage() {
 
         {/* Next / skip */}
         {(checkStatus === "correct" || checkStatus === "incorrect" || checkStatus === "nodetection") && (
-          <button
-            onClick={handleNext}
-            className="w-full h-12 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
+          <button onClick={handleNext} className="btn-secondary w-full h-12 text-sm">
             {isLastLetter ? "See Results →" : "Next Letter →"}
           </button>
         )}
