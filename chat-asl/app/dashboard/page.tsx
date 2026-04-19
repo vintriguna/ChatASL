@@ -127,8 +127,13 @@ export default function DashboardPage() {
               <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
                 <p className="text-xs uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Focus Letters</p>
                 <p className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                  {focusLetters.length > 0 ? focusLetters.join(", ").toUpperCase() : "-"}
+                  {focusLetters.length > 0 ? focusLetters.join(", ").toUpperCase() : "None"}
                 </p>
+                {focusLetters.length === 0 && (
+                  <p className="mt-2 text-sm text-green-700 dark:text-green-300">
+                    Nice work! You do not have any focus letters right now.
+                  </p>
+                )}
               </div>
             </div>
 
