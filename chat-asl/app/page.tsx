@@ -24,30 +24,30 @@ const MODES = [
     href: "/quiz",
     icon: "quiz",
     title: "Quiz",
-    description: "5-letter timed sessions that save your results",
+    description: "5-letter sessions that save your results",
   },
 ] as const;
 
 export default async function Home() {
   const supabase = await createClient();
-  const { data: { user } } = supabase
-    ? await supabase.auth.getUser()
-    : { data: { user: null } };
+  const {
+    data: { user },
+  } = supabase ? await supabase.auth.getUser() : { data: { user: null } };
 
-  const { data: streakData } = supabase && user
-    ? await supabase
-        .from("user_streaks")
-        .select("current_streak")
-        .eq("user_id", user.id)
-        .single()
-    : { data: null };
+  const { data: streakData } =
+    supabase && user
+      ? await supabase
+          .from("user_streaks")
+          .select("current_streak")
+          .eq("user_id", user.id)
+          .single()
+      : { data: null };
 
   const streak = streakData?.current_streak ?? 0;
 
   return (
     <div className="flex flex-col flex-1 bg-surface px-6 py-6">
       <div className="flex flex-col flex-1 gap-5 max-w-3xl mx-auto w-full">
-
         {/* Greeting row */}
         <div className="flex items-center justify-between">
           <div>
@@ -100,7 +100,6 @@ export default async function Home() {
             </Link>
           ))}
         </div>
-
       </div>
     </div>
   );
