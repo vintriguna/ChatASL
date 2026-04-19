@@ -14,28 +14,82 @@ const LETTER_GROUPS = {
   uz: LETTERS.slice(20),
 } as const;
 
-function randomLetter(pool: readonly string[], exclude?: string): string {
-  const filtered = exclude ? pool.filter((l) => l !== exclude) : pool;
+const WORD_BANK = [
+  "CAT",
+  "DOG",
+  "SUN",
+  "BOOK",
+  "MILK",
+  "TREE",
+  "STAR",
+  "MOON",
+  "FISH",
+  "BREAD",
+  "CHAIR",
+  "HOUSE",
+  "DAD",
+  "FACE",
+  "JIG",
+  "HILL",
+  "NOON",
+  "STOP",
+  "TORN",
+] as const;
+
+type LetterGroup = keyof typeof LETTER_GROUPS;
+type PracticeMode = "letters" | "spell";
+type Status =
+  | "idle"
+  | "loading"
+  | "correct"
+  | "incorrect"
+  | "error"
+  | "nodetection"
+  | "wordcomplete";
+
+interface Prediction {
+  letter: string;
+  confidence: number;
+}
+
+function randomItem(pool: readonly string[], exclude?: string): string {
+  const filtered = exclude ? pool.filter((item) => item !== exclude) : pool;
   const source = filtered.length > 0 ? filtered : pool;
   if (source.length === 0) return "A";
 
   return source[Math.floor(Math.random() * source.length)];
 }
 
-type LetterGroup = keyof typeof LETTER_GROUPS;
+function parseLetterGroup(raw: string | null): LetterGroup {
+  if (!raw) return "all";
+  if (raw in LETTER_GROUPS) return raw as LetterGroup;
+  return "all";
+}
+
+function parsePracticeMode(raw: string | null): PracticeMode {
+  return raw === "spell" ? "spell" : "letters";
+}
 
 function getGroupLetters(group: LetterGroup): readonly string[] {
   return LETTER_GROUPS[group];
 }
 
 function getRandomLetterForGroup(group: LetterGroup, exclude?: string): string {
-  return randomLetter(getGroupLetters(group), exclude);
+  return randomItem(getGroupLetters(group), exclude);
 }
 
-function parseLetterGroup(raw: string | null): LetterGroup {
-  if (!raw) return "all";
-  if (raw in LETTER_GROUPS) return raw as LetterGroup;
-  return "all";
+function wordFitsGroup(word: string, group: LetterGroup): boolean {
+  const groupLetters = new Set(getGroupLetters(group));
+  return word.split("").every((letter) => groupLetters.has(letter));
+}
+
+function getWordPoolForGroup(group: LetterGroup): readonly string[] {
+  const filtered = WORD_BANK.filter((word) => wordFitsGroup(word, group));
+  return filtered.length > 0 ? filtered : WORD_BANK;
+}
+
+function getRandomWordForGroup(group: LetterGroup, exclude?: string): string {
+  return randomItem(getWordPoolForGroup(group), exclude);
 }
 
 function getGroupLabel(group: LetterGroup): string {
@@ -53,13 +107,6 @@ function getGroupLabel(group: LetterGroup): string {
   }
 }
 
-type Status = "idle" | "loading" | "correct" | "incorrect" | "error" | "nodetection";
-
-interface Prediction {
-  letter: string;
-  confidence: number;
-}
-
 // Response shape: { outputs: [{ predictions: { predictions: [...] } }] }
 function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
   if (!data || typeof data !== "object") return null;
@@ -70,8 +117,8 @@ function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
   const predWrapper = first?.predictions as Record<string, unknown> | undefined;
   const preds = Array.isArray(predWrapper?.predictions) ? predWrapper.predictions : null;
 
-  if (preds === null) return null;   // unexpected shape
-  if (preds.length === 0) return "empty"; // model ran but found nothing
+  if (preds === null) return null;
+  if (preds.length === 0) return "empty";
 
   const top = preds[0] as Record<string, unknown>;
   const cls = (top.class as string) ?? (top.label as string);
@@ -84,17 +131,28 @@ function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
 export default function PracticePlayPage() {
   const searchParams = useSearchParams();
   const letterGroup = parseLetterGroup(searchParams.get("group"));
+  const mode = parsePracticeMode(searchParams.get("mode"));
 
   const [target, setTarget] = useState(() => getRandomLetterForGroup(letterGroup));
+  const [spellWord, setSpellWord] = useState(() => getRandomWordForGroup(letterGroup));
+  const [spellIndex, setSpellIndex] = useState(0);
   const [status, setStatus] = useState<Status>("idle");
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const { videoRef, captureFrame } = useWebcam();
 
+  const currentSpellLetter = spellWord[spellIndex] ?? "A";
+  const expectedLetter = mode === "spell" ? currentSpellLetter : target;
+
   useEffect(() => {
-    setTarget(getRandomLetterForGroup(letterGroup));
+    if (mode === "spell") {
+      setSpellWord(getRandomWordForGroup(letterGroup));
+      setSpellIndex(0);
+    } else {
+      setTarget(getRandomLetterForGroup(letterGroup));
+    }
     setStatus("idle");
     setPrediction(null);
-  }, [letterGroup]);
+  }, [letterGroup, mode]);
 
   const handleCheck = useCallback(async () => {
     const frame = captureFrame();
@@ -128,22 +186,71 @@ export default function PracticePlayPage() {
       }
 
       setPrediction(pred);
-      setStatus(pred.letter === target ? "correct" : "incorrect");
+
+      if (pred.letter !== expectedLetter) {
+        setStatus("incorrect");
+        return;
+      }
+
+      if (mode === "spell") {
+        const isLastLetter = spellIndex >= spellWord.length - 1;
+        if (isLastLetter) {
+          setStatus("wordcomplete");
+        } else {
+          setSpellIndex((prev) => prev + 1);
+          setStatus("correct");
+        }
+        return;
+      }
+
+      setStatus("correct");
     } catch {
       setStatus("error");
     }
-  }, [captureFrame, target]);
+  }, [captureFrame, expectedLetter, mode, spellIndex, spellWord.length]);
 
-  const handleNext = useCallback(() => {
+  const handleNextLetter = useCallback(() => {
     setTarget((prev) => getRandomLetterForGroup(letterGroup, prev));
     setStatus("idle");
     setPrediction(null);
   }, [letterGroup]);
 
+  const handleSkipLetter = useCallback(() => {
+    if (mode !== "spell") return;
+
+    const isLastLetter = spellIndex >= spellWord.length - 1;
+    if (isLastLetter) {
+      setStatus("wordcomplete");
+      setPrediction(null);
+      return;
+    }
+
+    setSpellIndex((prev) => prev + 1);
+    setStatus("idle");
+    setPrediction(null);
+  }, [mode, spellIndex, spellWord.length]);
+
+  const handleSkipWord = useCallback(() => {
+    if (mode !== "spell") return;
+
+    setSpellWord((prev) => getRandomWordForGroup(letterGroup, prev));
+    setSpellIndex(0);
+    setStatus("idle");
+    setPrediction(null);
+  }, [letterGroup, mode]);
+
+  const handleNextWord = useCallback(() => {
+    if (mode !== "spell") return;
+
+    setSpellWord((prev) => getRandomWordForGroup(letterGroup, prev));
+    setSpellIndex(0);
+    setStatus("idle");
+    setPrediction(null);
+  }, [letterGroup, mode]);
+
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 py-12">
       <div className="w-full max-w-md flex flex-col gap-6">
-
         <div className="flex items-center justify-between">
           <Link
             href="/"
@@ -152,7 +259,7 @@ export default function PracticePlayPage() {
             {"<- Back"}
           </Link>
           <h1 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">
-            Practice Mode
+            {mode === "spell" ? "Spell Mode" : "Practice Mode"}
           </h1>
           <Link
             href="/practice"
@@ -162,15 +269,38 @@ export default function PracticePlayPage() {
           </Link>
         </div>
 
-        <div className="flex flex-col items-center gap-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 py-6">
+        <div className="flex flex-col items-center gap-2 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 py-6 px-4">
           <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
             Set: {getGroupLabel(letterGroup)}
           </p>
-          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
-            Sign this letter
-          </p>
-          <span className="text-[8rem] leading-none font-bold text-zinc-900 dark:text-zinc-50 select-none">
-            {target}
+
+          {mode === "spell" ? (
+            <>
+              <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
+                Spell this word
+              </p>
+              <div className="flex items-center gap-2 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                {spellWord.split("").map((letter, index) => (
+                  <span
+                    key={`${letter}-${index}`}
+                    className={index === spellIndex ? "underline underline-offset-8" : "opacity-50"}
+                  >
+                    {letter}
+                  </span>
+                ))}
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Letter {spellIndex + 1} of {spellWord.length}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
+              Sign this letter
+            </p>
+          )}
+
+          <span className="text-[7rem] leading-none font-bold text-zinc-900 dark:text-zinc-50 select-none">
+            {expectedLetter}
           </span>
         </div>
 
@@ -194,13 +324,17 @@ export default function PracticePlayPage() {
           disabled={status === "loading"}
           className="w-full h-14 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-base font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
         >
-          {status === "loading" ? "Checking..." : "Check My Sign"}
+          {status === "loading" ? "Checking..." : mode === "spell" ? "Check This Letter" : "Check My Sign"}
         </button>
 
-        {(status === "correct" || status === "incorrect" || status === "error" || status === "nodetection") && (
+        {(status === "correct" ||
+          status === "incorrect" ||
+          status === "error" ||
+          status === "nodetection" ||
+          status === "wordcomplete") && (
           <div
             className={`rounded-2xl border px-5 py-4 flex flex-col gap-2 ${
-              status === "correct"
+              status === "correct" || status === "wordcomplete"
                 ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800"
                 : status === "incorrect"
                 ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
@@ -214,6 +348,10 @@ export default function PracticePlayPage() {
             ) : status === "nodetection" ? (
               <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
                 No sign detected - make sure your hand is visible and try again.
+              </p>
+            ) : status === "wordcomplete" ? (
+              <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                Word complete! Nice spelling.
               </p>
             ) : (
               <>
@@ -237,19 +375,52 @@ export default function PracticePlayPage() {
                       : "text-red-700 dark:text-red-300"
                   }`}
                 >
-                  {status === "correct" ? "Correct!" : "Incorrect - try again"}
+                  {status === "correct"
+                    ? mode === "spell"
+                      ? "Correct - moving to next letter"
+                      : "Correct!"
+                    : "Incorrect - try again"}
                 </p>
               </>
             )}
           </div>
         )}
 
-        {(status === "correct" || status === "incorrect" || status === "nodetection") && (
+        {mode === "letters" &&
+          (status === "correct" || status === "incorrect" || status === "nodetection") && (
+            <button
+              onClick={handleNextLetter}
+              className="w-full h-12 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              {"Next Letter ->"}
+            </button>
+          )}
+
+        {mode === "spell" && (
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={handleSkipLetter}
+              disabled={status === "loading" || status === "wordcomplete"}
+              className="h-12 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+            >
+              Skip Letter
+            </button>
+            <button
+              onClick={handleSkipWord}
+              disabled={status === "loading"}
+              className="h-12 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+            >
+              Skip Word
+            </button>
+          </div>
+        )}
+
+        {mode === "spell" && status === "wordcomplete" && (
           <button
-            onClick={handleNext}
+            onClick={handleNextWord}
             className="w-full h-12 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
-            {"Next Letter ->"}
+            {"Next Word ->"}
           </button>
         )}
       </div>

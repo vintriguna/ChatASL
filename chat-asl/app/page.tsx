@@ -21,6 +21,12 @@ export default function Home() {
             Practice Mode
           </Link>
           <Link
+            href="/practice/play?mode=spell&group=all"
+            className="flex h-14 items-center justify-center rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-base font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            Spell Mode
+          </Link>
+          <Link
             href="/translate"
             className="flex h-14 items-center justify-center rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-base font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
