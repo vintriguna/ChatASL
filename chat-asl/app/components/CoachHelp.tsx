@@ -125,14 +125,14 @@ export function CoachHelp({
       <button
         onClick={handleAskCoach}
         disabled={isDisabled}
-        className="w-full h-14 rounded-2xl border border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-200 text-sm font-semibold transition-colors disabled:opacity-50 hover:bg-violet-100 dark:hover:bg-violet-900"
+        className="btn-secondary w-full h-14 text-sm"
       >
         {isLoading ? "Coaching..." : "✨ Ask AI Coach"}
       </button>
 
       {(currentFeedback || currentError) && !isDismissed && (
         <div
-          className={`fixed inset-x-4 bottom-4 z-20 mx-auto max-w-2xl rounded-2xl border border-violet-200 bg-white px-4 py-3 pr-11 text-sm text-zinc-700 shadow-lg transition-opacity duration-[250ms] dark:border-violet-800 dark:bg-zinc-900 dark:text-zinc-200 ${
+          className={`fixed inset-x-4 bottom-4 z-20 mx-auto max-w-2xl rounded-[2rem] glass ghost-border ambient-shadow px-5 py-4 pr-12 text-sm text-on-surface transition-opacity duration-[250ms] ${
             isDismissing ? "opacity-0" : "opacity-100"
           }`}
         >
@@ -140,25 +140,21 @@ export function CoachHelp({
             type="button"
             onClick={handleDismiss}
             aria-label="Close AI coach feedback"
-            className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+            className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
           >
-            X
+            ✕
           </button>
           {currentError ? (
-            <p className="font-medium text-amber-700 dark:text-amber-300">{currentError}</p>
+            <p className="font-medium text-amber-700">{currentError}</p>
           ) : (
             currentFeedback && (
-              <div className="grid gap-1">
+              <div className="grid gap-1.5">
                 <p>
-                  <span className="font-semibold text-zinc-900 dark:text-zinc-50">
-                    Coach:
-                  </span>{" "}
+                  <span className="font-semibold text-on-surface">Coach:</span>{" "}
                   {currentFeedback.summary}
                 </p>
-                <p>{currentFeedback.correction}</p>
-                <p className="text-violet-700 dark:text-violet-300">
-                  {currentFeedback.nextStep}
-                </p>
+                <p className="text-on-surface-variant">{currentFeedback.correction}</p>
+                <p className="text-primary font-medium">{currentFeedback.nextStep}</p>
               </div>
             )
           )}
