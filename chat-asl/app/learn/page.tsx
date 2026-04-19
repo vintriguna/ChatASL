@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import { CoachHelp } from "../components/CoachHelp";
 import { useWebcam } from "../hooks/useWebcam";
 
 const LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY".split("");
@@ -52,6 +53,7 @@ export default function LearnPage() {
   const [target, setTarget] = useState(() => randomLetter());
   const [status, setStatus] = useState<Status>("idle");
   const [prediction, setPrediction] = useState<Prediction | null>(null);
+  const [coachResetKey, setCoachResetKey] = useState(0);
   const { videoRef, captureFrame } = useWebcam();
   const signReference = getSignReference(target);
 
@@ -59,6 +61,7 @@ export default function LearnPage() {
     const frame = captureFrame();
     if (!frame) return;
 
+    setCoachResetKey((prev) => prev + 1);
     setStatus("loading");
     setPrediction(null);
 
@@ -95,6 +98,7 @@ export default function LearnPage() {
 
   const handleNext = useCallback(() => {
     setTarget((prev) => randomLetter(prev));
+    setCoachResetKey((prev) => prev + 1);
     setStatus("idle");
     setPrediction(null);
   }, []);
@@ -165,13 +169,24 @@ export default function LearnPage() {
           </div>
         </div>
 
-        <button
-          onClick={handleCheck}
-          disabled={status === "loading"}
-          className="w-full h-14 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-base font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
-        >
-          {status === "loading" ? "Checking..." : "Check My Sign"}
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={handleCheck}
+            disabled={status === "loading"}
+            className="w-full h-14 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-base font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
+          >
+            {status === "loading" ? "Checking..." : "Check My Sign"}
+          </button>
+
+          <CoachHelp
+            targetLetter={target}
+            mode="learn"
+            prediction={prediction}
+            resetKey={coachResetKey}
+            classifierStatus={status}
+            captureFrame={captureFrame}
+          />
+        </div>
 
         {(status === "correct" ||
           status === "incorrect" ||

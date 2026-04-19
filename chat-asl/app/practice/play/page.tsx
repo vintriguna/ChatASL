@@ -3,6 +3,7 @@
 import { Suspense, useState, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { CoachHelp } from "../../components/CoachHelp";
 import { useWebcam } from "../../hooks/useWebcam";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -84,12 +85,14 @@ function PracticePlayPageContent({ letterGroup }: { letterGroup: LetterGroup }) 
   const [target, setTarget] = useState(() => getRandomLetterForGroup(letterGroup));
   const [status, setStatus] = useState<Status>("idle");
   const [prediction, setPrediction] = useState<Prediction | null>(null);
+  const [coachResetKey, setCoachResetKey] = useState(0);
   const { videoRef, captureFrame } = useWebcam();
 
   const handleCheck = useCallback(async () => {
     const frame = captureFrame();
     if (!frame) return;
 
+    setCoachResetKey((prev) => prev + 1);
     setStatus("loading");
     setPrediction(null);
 
@@ -126,6 +129,7 @@ function PracticePlayPageContent({ letterGroup }: { letterGroup: LetterGroup }) 
 
   const handleNextLetter = useCallback(() => {
     setTarget((prev) => getRandomLetterForGroup(letterGroup, prev));
+    setCoachResetKey((prev) => prev + 1);
     setStatus("idle");
     setPrediction(null);
   }, [letterGroup]);
@@ -178,13 +182,24 @@ function PracticePlayPageContent({ letterGroup }: { letterGroup: LetterGroup }) 
           )}
         </div>
 
-        <button
-          onClick={handleCheck}
-          disabled={status === "loading"}
-          className="w-full h-14 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-base font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
-        >
-          {status === "loading" ? "Checking..." : "Check My Sign"}
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={handleCheck}
+            disabled={status === "loading"}
+            className="w-full h-14 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-base font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
+          >
+            {status === "loading" ? "Checking..." : "Check My Sign"}
+          </button>
+
+          <CoachHelp
+            targetLetter={target}
+            mode="practice"
+            prediction={prediction}
+            resetKey={coachResetKey}
+            classifierStatus={status}
+            captureFrame={captureFrame}
+          />
+        </div>
 
         {(status === "correct" || status === "incorrect" || status === "error" || status === "nodetection") && (
           <div
