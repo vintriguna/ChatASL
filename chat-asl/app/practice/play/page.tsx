@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { Suspense, useState, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useWebcam } from "../../hooks/useWebcam";
@@ -80,20 +80,11 @@ function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
   return { letter: cls.toUpperCase(), confidence: Math.round(conf * 100) };
 }
 
-export default function PracticePlayPage() {
-  const searchParams = useSearchParams();
-  const letterGroup = parseLetterGroup(searchParams.get("group"));
-
+function PracticePlayPageContent({ letterGroup }: { letterGroup: LetterGroup }) {
   const [target, setTarget] = useState(() => getRandomLetterForGroup(letterGroup));
   const [status, setStatus] = useState<Status>("idle");
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const { videoRef, captureFrame } = useWebcam();
-
-  useEffect(() => {
-    setTarget(getRandomLetterForGroup(letterGroup));
-    setStatus("idle");
-    setPrediction(null);
-  }, [letterGroup]);
 
   const handleCheck = useCallback(async () => {
     const frame = captureFrame();
@@ -252,5 +243,20 @@ export default function PracticePlayPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function PracticePlayPageWithParams() {
+  const searchParams = useSearchParams();
+  const letterGroup = parseLetterGroup(searchParams.get("group"));
+
+  return <PracticePlayPageContent key={letterGroup} letterGroup={letterGroup} />;
+}
+
+export default function PracticePlayPage() {
+  return (
+    <Suspense fallback={null}>
+      <PracticePlayPageWithParams />
+    </Suspense>
   );
 }

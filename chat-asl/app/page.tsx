@@ -5,15 +5,17 @@ import { createClient } from "@/lib/supabase/server";
 async function signOut() {
   "use server";
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  await supabase?.auth.signOut();
   redirect("/login");
 }
 
 export default async function Home() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = supabase
+    ? await supabase.auth.getUser()
+    : { data: { user: null } };
 
-  const { data: streakData } = user
+  const { data: streakData } = supabase && user
     ? await supabase
         .from("user_streaks")
         .select("current_streak, longest_streak")
@@ -54,8 +56,14 @@ export default async function Home() {
 
         <div className="flex flex-col gap-3 w-full">
           <Link
-            href="/practice"
+            href="/learn"
             className="flex h-14 items-center justify-center rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-base font-semibold hover:opacity-90 transition-opacity"
+          >
+            Learn Mode
+          </Link>
+          <Link
+            href="/practice"
+            className="flex h-14 items-center justify-center rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-base font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             Practice Mode
           </Link>

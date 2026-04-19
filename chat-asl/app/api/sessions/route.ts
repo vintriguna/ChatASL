@@ -14,6 +14,10 @@ interface SessionPayload {
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json({ error: "Supabase is not configured" }, { status: 503 });
+  }
+
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { Suspense, useState, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useWebcam } from "../hooks/useWebcam";
@@ -112,10 +112,7 @@ function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
   return { letter: cls.toUpperCase(), confidence: Math.round(conf * 100) };
 }
 
-export default function SpellPage() {
-  const searchParams = useSearchParams();
-  const letterGroup = parseLetterGroup(searchParams.get("group"));
-
+function SpellPageContent({ letterGroup }: { letterGroup: LetterGroup }) {
   const [spellWord, setSpellWord] = useState(() => getRandomWordForGroup(letterGroup));
   const [spellIndex, setSpellIndex] = useState(0);
   const [status, setStatus] = useState<Status>("idle");
@@ -123,13 +120,6 @@ export default function SpellPage() {
   const { videoRef, captureFrame } = useWebcam();
 
   const expectedLetter = spellWord[spellIndex] ?? "A";
-
-  useEffect(() => {
-    setSpellWord(getRandomWordForGroup(letterGroup));
-    setSpellIndex(0);
-    setStatus("idle");
-    setPrediction(null);
-  }, [letterGroup]);
 
   const handleCheck = useCallback(async () => {
     const frame = captureFrame();
@@ -360,5 +350,20 @@ export default function SpellPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function SpellPageWithParams() {
+  const searchParams = useSearchParams();
+  const letterGroup = parseLetterGroup(searchParams.get("group"));
+
+  return <SpellPageContent key={letterGroup} letterGroup={letterGroup} />;
+}
+
+export default function SpellPage() {
+  return (
+    <Suspense fallback={null}>
+      <SpellPageWithParams />
+    </Suspense>
   );
 }

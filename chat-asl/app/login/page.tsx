@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
+  const isAuthConfigured = Boolean(supabase);
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -20,6 +21,12 @@ export default function LoginPage() {
     setError(null);
     setMessage(null);
     setLoading(true);
+
+    if (!supabase) {
+      setError("Supabase is not configured for this environment.");
+      setLoading(false);
+      return;
+    }
 
     if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -80,12 +87,19 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !isAuthConfigured}
             className="h-11 rounded-xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-sm font-semibold disabled:opacity-50 hover:opacity-90 transition-opacity"
           >
             {loading ? "…" : mode === "signin" ? "Sign In" : "Sign Up"}
           </button>
         </form>
+
+        {!isAuthConfigured && (
+          <p className="text-center text-xs text-amber-600 dark:text-amber-300">
+            Supabase login is disabled until NEXT_PUBLIC_SUPABASE_URL and
+            NEXT_PUBLIC_SUPABASE_ANON_KEY are set.
+          </p>
+        )}
 
         <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
           {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
