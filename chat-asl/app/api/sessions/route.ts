@@ -75,5 +75,7 @@ export async function POST(request: NextRequest) {
     )
   );
 
+  await supabase.rpc("update_streak", { p_user_id: user.id });
+
   return NextResponse.json({ sessionId: session.id, correctCount });
 }
