@@ -76,8 +76,19 @@ export default function PracticePage() {
         return;
       }
 
+      const isCorrect = pred.letter === target;
       setPrediction(pred);
-      setStatus(pred.letter === target ? "correct" : "incorrect");
+      setStatus(isCorrect ? "correct" : "incorrect");
+      fetch("/api/attempts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetLetter: target,
+          detectedLetter: pred.letter,
+          confidence: pred.confidence,
+          isCorrect,
+        }),
+      });
     } catch {
       setStatus("error");
     }
