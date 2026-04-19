@@ -1,3 +1,0 @@
-opencv-python
-inference-sdk
-aiortc==1.10.1
