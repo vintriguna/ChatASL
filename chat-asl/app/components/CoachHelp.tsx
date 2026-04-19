@@ -132,32 +132,61 @@ export function CoachHelp({
 
       {(currentFeedback || currentError) && !isDismissed && (
         <div
-          className={`fixed inset-x-4 bottom-4 z-20 mx-auto max-w-2xl rounded-[2rem] glass ghost-border ambient-shadow px-5 py-4 pr-12 text-sm text-on-surface transition-opacity duration-[250ms] ${
+          className={`fixed inset-0 z-50 flex items-center justify-center p-6 transition-opacity duration-[250ms] ${
             isDismissing ? "opacity-0" : "opacity-100"
           }`}
         >
-          <button
-            type="button"
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-[rgba(48,41,80,0.4)] backdrop-blur-sm"
             onClick={handleDismiss}
-            aria-label="Close AI coach feedback"
-            className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-          >
-            ✕
-          </button>
-          {currentError ? (
-            <p className="font-medium text-amber-700">{currentError}</p>
-          ) : (
-            currentFeedback && (
-              <div className="grid gap-1.5">
-                <p>
-                  <span className="font-semibold text-on-surface">Coach:</span>{" "}
-                  {currentFeedback.summary}
-                </p>
-                <p className="text-on-surface-variant">{currentFeedback.correction}</p>
-                <p className="text-primary font-medium">{currentFeedback.nextStep}</p>
-              </div>
-            )
-          )}
+            aria-hidden="true"
+          />
+
+          {/* Modal */}
+          <div className="relative z-10 card w-full max-w-md flex flex-col gap-5">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <p className="font-display text-xl font-bold text-on-surface">AI Coach</p>
+              <button
+                type="button"
+                onClick={handleDismiss}
+                aria-label="Close AI coach feedback"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
+              >
+                ✕
+              </button>
+            </div>
+
+            {currentError ? (
+              <p className="text-base font-medium text-amber-700">{currentError}</p>
+            ) : (
+              currentFeedback && (
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Summary</p>
+                    <p className="text-base text-on-surface leading-relaxed">{currentFeedback.summary}</p>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Correction</p>
+                    <p className="text-base text-on-surface leading-relaxed">{currentFeedback.correction}</p>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Next Step</p>
+                    <p className="text-base font-medium text-primary leading-relaxed">{currentFeedback.nextStep}</p>
+                  </div>
+                </div>
+              )
+            )}
+
+            <button
+              type="button"
+              onClick={handleDismiss}
+              className="btn-primary h-12 text-sm"
+            >
+              Got it
+            </button>
+          </div>
         </div>
       )}
     </div>
