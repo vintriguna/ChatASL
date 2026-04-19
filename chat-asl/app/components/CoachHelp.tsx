@@ -125,7 +125,7 @@ export function CoachHelp({
       <button
         onClick={handleAskCoach}
         disabled={isDisabled}
-        className="w-full h-10 rounded-2xl border border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-200 text-sm font-semibold transition-colors disabled:opacity-50 hover:bg-violet-100 dark:hover:bg-violet-900"
+        className="w-full h-14 rounded-2xl border border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-200 text-sm font-semibold transition-colors disabled:opacity-50 hover:bg-violet-100 dark:hover:bg-violet-900"
       >
         {isLoading ? "Coaching..." : "✨ Ask AI Coach"}
       </button>
