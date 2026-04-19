@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { CoachHelp } from "../components/CoachHelp";
 import { useWebcam } from "../hooks/useWebcam";
 
 const LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY".split("");
@@ -44,14 +43,12 @@ export default function PracticePage() {
   const [target, setTarget] = useState(() => randomLetter());
   const [status, setStatus] = useState<Status>("idle");
   const [prediction, setPrediction] = useState<Prediction | null>(null);
-  const [coachResetKey, setCoachResetKey] = useState(0);
   const { videoRef, captureFrame } = useWebcam();
 
   const handleCheck = useCallback(async () => {
     const frame = captureFrame();
     if (!frame) return;
 
-    setCoachResetKey((prev) => prev + 1);
     setStatus("loading");
     setPrediction(null);
 
@@ -88,14 +85,13 @@ export default function PracticePage() {
 
   const handleNext = useCallback(() => {
     setTarget((prev) => randomLetter(prev));
-    setCoachResetKey((prev) => prev + 1);
     setStatus("idle");
     setPrediction(null);
   }, []);
 
   return (
-    <div className="flex h-svh flex-col items-center justify-center overflow-hidden bg-zinc-50 dark:bg-zinc-950 px-4 py-3">
-      <div className="w-full max-w-sm flex flex-col gap-3">
+    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 py-12">
+      <div className="w-full max-w-md flex flex-col gap-6">
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -112,11 +108,11 @@ export default function PracticePage() {
         </div>
 
         {/* Target letter */}
-        <div className="flex flex-col items-center gap-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 py-3">
+        <div className="flex flex-col items-center gap-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 py-6">
           <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
             Sign this letter
           </p>
-          <span className="text-[5rem] leading-none font-bold text-zinc-900 dark:text-zinc-50 select-none">
+          <span className="text-[8rem] leading-none font-bold text-zinc-900 dark:text-zinc-50 select-none">
             {target}
           </span>
         </div>
@@ -138,29 +134,18 @@ export default function PracticePage() {
         </div>
 
         {/* Check button */}
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={handleCheck}
-            disabled={status === "loading"}
-            className="w-full h-10 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-sm font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
-          >
-            {status === "loading" ? "Checking…" : "Check My Sign"}
-          </button>
-
-          <CoachHelp
-            targetLetter={target}
-            mode="practice"
-            prediction={prediction}
-            resetKey={coachResetKey}
-            classifierStatus={status}
-            captureFrame={captureFrame}
-          />
-        </div>
+        <button
+          onClick={handleCheck}
+          disabled={status === "loading"}
+          className="w-full h-14 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-base font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
+        >
+          {status === "loading" ? "Checking…" : "Check My Sign"}
+        </button>
 
         {/* Feedback */}
         {(status === "correct" || status === "incorrect" || status === "error" || status === "nodetection") && (
           <div
-            className={`rounded-2xl border px-4 py-3 flex flex-col gap-1 ${
+            className={`rounded-2xl border px-5 py-4 flex flex-col gap-2 ${
               status === "correct"
                 ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800"
                 : status === "incorrect"
@@ -209,7 +194,7 @@ export default function PracticePage() {
         {(status === "correct" || status === "incorrect" || status === "nodetection") && (
           <button
             onClick={handleNext}
-            className="w-full h-10 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="w-full h-12 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             Next Letter →
           </button>
