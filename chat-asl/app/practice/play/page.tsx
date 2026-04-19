@@ -6,13 +6,13 @@ import { useSearchParams } from "next/navigation";
 import { CoachHelp } from "../../components/CoachHelp";
 import { useWebcam } from "../../hooks/useWebcam";
 
-const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY".split(""); // J and Z omitted (motion-based, undetectable)
 const LETTER_GROUPS = {
   all: LETTERS,
-  af: LETTERS.slice(0, 6),
-  gm: LETTERS.slice(6, 13),
-  nt: LETTERS.slice(13, 20),
-  uz: LETTERS.slice(20),
+  af: ["A","B","C","D","E","F"],
+  gm: ["G","H","I","K","L","M"],
+  nt: ["N","O","P","Q","R","S","T"],
+  uz: ["U","V","W","X","Y"],
 } as const;
 
 type LetterGroup = keyof typeof LETTER_GROUPS;
