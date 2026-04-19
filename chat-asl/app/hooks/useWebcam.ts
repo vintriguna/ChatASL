@@ -4,24 +4,53 @@ import { useEffect, useRef, useCallback } from "react";
 
 export function useWebcam() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const attachStreamToVideo = useCallback(() => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+
+    if (video.srcObject !== stream) {
+      video.srcObject = stream;
+    }
+
+    void video.play().catch(() => {
+      // Ignore autoplay timing errors; user interaction will retry playback.
+    });
+  }, []);
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
+    let isMounted = true;
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      console.error("Webcam error: getUserMedia is not supported in this browser.");
+      return;
+    }
 
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "user" } })
       .then((s) => {
-        stream = s;
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
+        if (!isMounted) {
+          s.getTracks().forEach((t) => t.stop());
+          return;
         }
+
+        streamRef.current = s;
+        attachStreamToVideo();
       })
       .catch((err) => console.error("Webcam error:", err));
 
     return () => {
-      stream?.getTracks().forEach((t) => t.stop());
+      isMounted = false;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
     };
-  }, []);
+  }, [attachStreamToVideo]);
+
+  useEffect(() => {
+    attachStreamToVideo();
+  });
 
   const captureFrame = useCallback((): string | null => {
     const video = videoRef.current;

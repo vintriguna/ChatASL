@@ -56,6 +56,12 @@ export default async function Home() {
 
         <div className="flex flex-col gap-3 w-full">
           <Link
+            href="/dashboard"
+            className="flex h-14 items-center justify-center rounded-2xl border border-zinc-900 dark:border-zinc-50 text-zinc-900 dark:text-zinc-50 text-base font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+          >
+            Dashboard
+          </Link>
+          <Link
             href="/learn"
             className="flex h-14 items-center justify-center rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-base font-semibold hover:opacity-90 transition-opacity"
           >

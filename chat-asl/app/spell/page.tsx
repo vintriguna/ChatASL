@@ -281,8 +281,9 @@ function SpellPageContent({ letterGroup }: { letterGroup: LetterGroup }) {
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
             Building a personalized spell list based on your letter stats...
           </p>
-          <div className="mt-6 flex items-center justify-center">
-            <div className="h-10 w-10 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-800 dark:border-zinc-700 dark:border-t-zinc-100" />
+          <div className="mt-6 flex flex-col items-center justify-center gap-2">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-zinc-300 border-t-zinc-800 dark:border-zinc-700 dark:border-t-zinc-100" />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 animate-pulse">Loading...</p>
           </div>
         </div>
       </div>
