@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useWebcam } from "../hooks/useWebcam";
 
-const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY".split("");
 
 function randomLetter(exclude?: string): string {
   const pool = exclude ? LETTERS.filter((l) => l !== exclude) : LETTERS;
