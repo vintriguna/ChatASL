@@ -161,6 +161,16 @@ export async function POST(request: NextRequest) {
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   if (mode === "stats") {
+    const statsByLetter = new Map(
+      stats.map((row) => [row.letter.trim().toLowerCase(), row])
+    );
+
+    const filterHighAccuracyFocusLetters = (letters: string[]) =>
+      letters.filter((letter) => {
+        const stat = statsByLetter.get(letter);
+        return !stat || stat.accuracy <= 0.95;
+      });
+
     const topWeak = [...stats]
       .sort((a, b) => {
         if (b.incorrectCount !== a.incorrectCount) {
@@ -229,7 +239,7 @@ export async function POST(request: NextRequest) {
       const fallback = fallbackStatsSummary(stats, weakLetters);
       return Response.json({
         ...fallback,
-        focusLetters: weakLetters,
+        focusLetters: filterHighAccuracyFocusLetters(weakLetters),
         stats: [...stats].sort((a, b) => a.letter.localeCompare(b.letter)),
         model,
         source: "fallback-rate-limit",
@@ -275,10 +285,12 @@ export async function POST(request: NextRequest) {
       )
     );
 
+    const filteredFocusLetters = filterHighAccuracyFocusLetters(normalizedFocusLetters);
+
     return Response.json({
       summary: parsed.summary ?? "You are making steady progress.",
       coachTip: parsed.coachTip ?? "Practice your weakest letters in short daily sessions.",
-      focusLetters: normalizedFocusLetters,
+      focusLetters: filteredFocusLetters,
       stats: [...stats].sort((a, b) => a.letter.localeCompare(b.letter)),
       model,
     });
