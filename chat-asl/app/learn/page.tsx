@@ -1,11 +1,21 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { useCallback, useState } from "react";
 import { CoachHelp } from "../components/CoachHelp";
 import { useWebcam } from "../hooks/useWebcam";
 
 const LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY".split("");
+const SIGN_IMAGE_SOURCE = "https://commons.wikimedia.org/wiki/Special:Redirect/file";
+
+function getSignReference(letter: string) {
+  return {
+    src: `${SIGN_IMAGE_SOURCE}/Sign%20language%20${letter}.svg`,
+    alt: `ASL reference for the letter ${letter}`,
+    hint: `Match the handshape shown for the letter ${letter}.`,
+  };
+}
 
 function randomLetter(exclude?: string): string {
   const pool = exclude ? LETTERS.filter((l) => l !== exclude) : LETTERS;
@@ -19,7 +29,6 @@ interface Prediction {
   confidence: number;
 }
 
-// Response shape: { outputs: [{ predictions: { predictions: [...] } }] }
 function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
   if (!data || typeof data !== "object") return null;
   const d = data as Record<string, unknown>;
@@ -29,8 +38,8 @@ function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
   const predWrapper = first?.predictions as Record<string, unknown> | undefined;
   const preds = Array.isArray(predWrapper?.predictions) ? predWrapper.predictions : null;
 
-  if (preds === null) return null;   // unexpected shape
-  if (preds.length === 0) return "empty"; // model ran but found nothing
+  if (preds === null) return null;
+  if (preds.length === 0) return "empty";
 
   const top = preds[0] as Record<string, unknown>;
   const cls = (top.class as string) ?? (top.label as string);
@@ -40,12 +49,13 @@ function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
   return { letter: cls.toUpperCase(), confidence: Math.round(conf * 100) };
 }
 
-export default function PracticePage() {
+export default function LearnPage() {
   const [target, setTarget] = useState(() => randomLetter());
   const [status, setStatus] = useState<Status>("idle");
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [coachResetKey, setCoachResetKey] = useState(0);
   const { videoRef, captureFrame } = useWebcam();
+  const signReference = getSignReference(target);
 
   const handleCheck = useCallback(async () => {
     const frame = captureFrame();
@@ -95,61 +105,82 @@ export default function PracticePage() {
 
   return (
     <div className="flex h-svh flex-col items-center justify-center overflow-hidden bg-zinc-50 dark:bg-zinc-950 px-4 py-3">
-      <div className="w-full max-w-sm flex flex-col gap-3">
-
-        {/* Header */}
+      <div className="w-full max-w-5xl flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <Link
             href="/"
             className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
           >
-            ← Back
+            &larr; Back
           </Link>
           <h1 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">
-            Practice Mode
+            Learn Mode
           </h1>
           <div className="w-12" />
         </div>
 
-        {/* Target letter */}
-        <div className="flex flex-col items-center gap-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 py-3">
+        <div className="flex flex-col items-center gap-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 py-2">
           <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
-            Sign this letter
+            Learn this letter
           </p>
-          <span className="text-[5rem] leading-none font-bold text-zinc-900 dark:text-zinc-50 select-none">
+          <span className="text-[4rem] leading-none font-bold text-zinc-900 dark:text-zinc-50 select-none">
             {target}
           </span>
         </div>
 
-        {/* Webcam */}
-        <div className="relative w-full overflow-hidden rounded-2xl bg-zinc-900 aspect-video">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover scale-x-[-1]"
-          />
-          {status === "loading" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-              <span className="text-white text-sm font-medium">Checking…</span>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+              Your camera
+            </p>
+            <div className="relative w-full overflow-hidden rounded-2xl bg-zinc-900 aspect-video">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover scale-x-[-1]"
+              />
+              {status === "loading" && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <span className="text-white text-sm font-medium">Checking...</span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+              Reference sign
+            </p>
+            <div className="relative w-full overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white aspect-video">
+              <Image
+                src={signReference.src}
+                alt={signReference.alt}
+                fill
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                className="object-contain"
+                unoptimized
+              />
+            </div>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {signReference.hint}
+            </p>
+          </div>
         </div>
 
-        {/* Check button */}
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={handleCheck}
             disabled={status === "loading"}
             className="w-full h-10 rounded-2xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-sm font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
           >
-            {status === "loading" ? "Checking…" : "Check My Sign"}
+            {status === "loading" ? "Checking..." : "Check My Sign"}
           </button>
 
           <CoachHelp
             targetLetter={target}
-            mode="practice"
+            mode="learn"
             prediction={prediction}
             resetKey={coachResetKey}
             classifierStatus={status}
@@ -157,28 +188,30 @@ export default function PracticePage() {
           />
         </div>
 
-        {/* Feedback */}
-        {(status === "correct" || status === "incorrect" || status === "error" || status === "nodetection") && (
+        {(status === "correct" ||
+          status === "incorrect" ||
+          status === "error" ||
+          status === "nodetection") && (
           <div
             className={`rounded-2xl border px-4 py-3 flex flex-col gap-1 ${
               status === "correct"
                 ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800"
                 : status === "incorrect"
-                ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
-                : "bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800"
+                  ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
+                  : "bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800"
             }`}
           >
             {status === "error" ? (
               <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                Something went wrong — try again.
+                Something went wrong. Try again.
               </p>
             ) : status === "nodetection" ? (
               <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                No sign detected — make sure your hand is visible and try again.
+                No sign detected. Make sure your hand is visible and try again.
               </p>
             ) : (
               <>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
                   <span className="text-sm text-zinc-600 dark:text-zinc-300">
                     Detected:{" "}
                     <span className="font-bold text-zinc-900 dark:text-zinc-50">
@@ -198,20 +231,19 @@ export default function PracticePage() {
                       : "text-red-700 dark:text-red-300"
                   }`}
                 >
-                  {status === "correct" ? "✓ Correct!" : "✗ Incorrect — try again"}
+                  {status === "correct" ? "Correct!" : "Incorrect. Try again."}
                 </p>
               </>
             )}
           </div>
         )}
 
-        {/* Next letter */}
         {(status === "correct" || status === "incorrect" || status === "nodetection") && (
           <button
             onClick={handleNext}
             className="w-full h-10 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
-            Next Letter →
+            Next Letter &rarr;
           </button>
         )}
       </div>
