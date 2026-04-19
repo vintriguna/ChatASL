@@ -34,8 +34,66 @@ interface LetterStatsResponse {
   error?: string;
 }
 
+const FALLBACK_WORDS = [
+  "calm",
+  "card",
+  "care",
+  "farm",
+  "fast",
+  "film",
+  "flag",
+  "gate",
+  "gear",
+  "glad",
+  "land",
+  "last",
+  "leaf",
+  "mall",
+  "mask",
+  "mate",
+  "meal",
+  "near",
+  "nest",
+  "raft",
+  "rain",
+  "salt",
+  "sand",
+  "seat",
+  "star",
+  "stem",
+  "tank",
+  "tape",
+  "team",
+  "tear",
+] as const;
+
 function isValidWord(word: string) {
   return /^[a-z]{4}$/.test(word) && !/[jz]/.test(word);
+}
+
+function fallbackWords(weakLetters: string[], count: number) {
+  const weak = new Set(weakLetters);
+
+  return [...FALLBACK_WORDS]
+    .sort((a, b) => {
+      const scoreA = [...a].reduce((acc, ch) => acc + (weak.has(ch) ? 1 : 0), 0);
+      const scoreB = [...b].reduce((acc, ch) => acc + (weak.has(ch) ? 1 : 0), 0);
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      return a.localeCompare(b);
+    })
+    .slice(0, count);
+}
+
+function fallbackStatsSummary(stats: LetterStat[], weakLetters: string[]) {
+  const totalAttempts = stats.reduce((acc, row) => acc + row.attempts, 0);
+  const totalCorrect = stats.reduce((acc, row) => acc + row.correctCount, 0);
+  const accuracy = totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
+  const focus = weakLetters.length > 0 ? weakLetters.slice(0, 4).join(", ").toUpperCase() : "core letters";
+
+  return {
+    summary: `You have ${totalAttempts} total attempts with ${accuracy}% overall accuracy.`,
+    coachTip: `Focus next on ${focus} with short, repeated practice rounds.`,
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -167,6 +225,17 @@ export async function POST(request: NextRequest) {
       }),
     });
 
+    if (geminiStatsRes.status === 429) {
+      const fallback = fallbackStatsSummary(stats, weakLetters);
+      return Response.json({
+        ...fallback,
+        focusLetters: weakLetters,
+        stats: [...stats].sort((a, b) => a.letter.localeCompare(b.letter)),
+        model,
+        source: "fallback-rate-limit",
+      });
+    }
+
     if (!geminiStatsRes.ok) {
       const detail = await geminiStatsRes.text();
       return Response.json(
@@ -260,6 +329,17 @@ export async function POST(request: NextRequest) {
       },
     }),
   });
+
+  if (geminiRes.status === 429) {
+    const words = fallbackWords(weakLetters, clampedWordCount);
+    return Response.json({
+      words,
+      reasoning: "Gemini rate-limited, returned local fallback words ranked by weak letters.",
+      focusLetters: weakLetters,
+      model,
+      source: "fallback-rate-limit",
+    });
+  }
 
   if (!geminiRes.ok) {
     const detail = await geminiRes.text();
