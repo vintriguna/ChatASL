@@ -255,7 +255,7 @@ export default function DashboardPage() {
                     fillOpacity={0.25}
                   />
                   <Tooltip
-                    formatter={(value: number) => [`${value}%`, "Accuracy"]}
+                    formatter={(value) => [`${value ?? 0}%`, "Accuracy"]}
                     contentStyle={{
                       fontSize: 12,
                       borderRadius: 8,
@@ -294,8 +294,8 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     cursor={{ fill: "rgba(0,0,0,0.04)" }}
-                    formatter={(value: number, _name: string, props: { payload?: { attempts?: number } }) => [
-                      `${value}% (${props.payload?.attempts ?? 0} tries)`,
+                    formatter={(value, _name, props) => [
+                      `${value ?? 0}% (${(props.payload as { attempts?: number })?.attempts ?? 0} tries)`,
                       "Accuracy",
                     ]}
                     contentStyle={{
