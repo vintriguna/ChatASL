@@ -40,15 +40,15 @@ export default function GlossaryPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-7 gap-3">
+        <div className="flex flex-wrap justify-center gap-3">
           {GLOSSARY.map((entry) => (
             <button
               key={entry.letter}
               onClick={() => setSelected(entry)}
-              className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors p-3 flex flex-col items-center gap-2 cursor-pointer"
+              className="w-24 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors p-3 flex flex-col items-center gap-2 cursor-pointer"
               aria-label={`View ASL sign for letter ${entry.letter}`}
             >
-              <div className="relative w-full aspect-square">
+              <div className="relative w-full aspect-square rounded-xl bg-white">
                 <Image
                   src={entry.imageUrl}
                   alt={entry.altText}
@@ -94,7 +94,7 @@ export default function GlossaryPage() {
               </button>
             </div>
 
-            <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800">
+            <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-white border border-zinc-100 dark:border-zinc-800">
               <Image
                 src={selected.imageUrl}
                 alt={selected.altText}
