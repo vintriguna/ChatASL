@@ -13,13 +13,11 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setMessage(null);
     setLoading(true);
 
     if (!supabase) {
@@ -41,7 +39,8 @@ export default function LoginPage() {
       if (error) {
         setError(error.message);
       } else {
-        setMessage("Check your email for a confirmation link.");
+        router.push("/");
+        router.refresh();
       }
     }
 
@@ -81,9 +80,6 @@ export default function LoginPage() {
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           )}
-          {message && (
-            <p className="text-sm text-green-600 dark:text-green-400">{message}</p>
-          )}
 
           <button
             type="submit"
@@ -104,7 +100,7 @@ export default function LoginPage() {
         <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
           {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
           <button
-            onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); setMessage(null); }}
+            onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); }}
             className="font-medium text-zinc-900 dark:text-zinc-50 hover:underline"
           >
             {mode === "signin" ? "Sign Up" : "Sign In"}

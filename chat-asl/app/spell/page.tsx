@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useWebcam } from "../hooks/useWebcam";
 
-const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY".split(""); // J and Z omitted (motion-based, undetectable)
 const LETTER_GROUPS = {
   all: LETTERS,
-  af: LETTERS.slice(0, 6),
-  gm: LETTERS.slice(6, 13),
-  nt: LETTERS.slice(13, 20),
-  uz: LETTERS.slice(20),
+  af: ["A","B","C","D","E","F"],
+  gm: ["G","H","I","K","L","M"],
+  nt: ["N","O","P","Q","R","S","T"],
+  uz: ["U","V","W","X","Y"],
 } as const;
 
 const DEFAULT_WORD_BANK = [
@@ -111,21 +111,27 @@ function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
   return { letter: cls.toUpperCase(), confidence: Math.round(conf * 100) };
 }
 
+// Session-level cache so navigating away and back skips the Gemini call
+const wordCache = new Map<LetterGroup, readonly string[]>();
+
 function SpellPageContent({ letterGroup }: { letterGroup: LetterGroup }) {
   const [wordBank, setWordBank] = useState<readonly string[]>(() =>
-    getWordPoolForGroup(letterGroup, DEFAULT_WORD_BANK)
+    wordCache.get(letterGroup) ?? getWordPoolForGroup(letterGroup, DEFAULT_WORD_BANK)
   );
-  const [spellWord, setSpellWord] = useState(() =>
-    getRandomWordForGroup(letterGroup, getWordPoolForGroup(letterGroup, DEFAULT_WORD_BANK))
-  );
+  const [spellWord, setSpellWord] = useState(() => {
+    const pool = wordCache.get(letterGroup) ?? getWordPoolForGroup(letterGroup, DEFAULT_WORD_BANK);
+    return randomItem(pool);
+  });
   const [spellIndex, setSpellIndex] = useState(0);
   const [status, setStatus] = useState<Status>("idle");
   const [prediction, setPrediction] = useState<Prediction | null>(null);
-  const [isGeneratingWords, setIsGeneratingWords] = useState(true);
+  const [isGeneratingWords, setIsGeneratingWords] = useState(!wordCache.has(letterGroup));
   const [wordError, setWordError] = useState<string | null>(null);
   const { videoRef, captureFrame } = useWebcam();
 
   useEffect(() => {
+    if (wordCache.has(letterGroup)) return;
+
     let cancelled = false;
 
     const loadWords = async () => {
@@ -160,6 +166,7 @@ function SpellPageContent({ letterGroup }: { letterGroup: LetterGroup }) {
 
         if (cancelled) return;
 
+        wordCache.set(letterGroup, nextPool);
         setWordBank(nextPool);
         setSpellWord(randomItem(nextPool));
         setSpellIndex(0);

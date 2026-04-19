@@ -22,7 +22,9 @@ function parseRoboflowResponse(data: unknown): Prediction | null | "empty" {
   const cls = (top.class as string) ?? (top.label as string);
   const conf = typeof top.confidence === "number" ? top.confidence : 0;
   if (!cls) return null;
-  return { letter: cls.toUpperCase(), confidence: Math.round(conf * 100) };
+  const letter = cls.toUpperCase();
+  if (letter === "J" || letter === "Z") return "empty"; // motion-based, undetectable by static classifier
+  return { letter, confidence: Math.round(conf * 100) };
 }
 
 type Status = "idle" | "loading" | "previewing" | "nodetection" | "error";

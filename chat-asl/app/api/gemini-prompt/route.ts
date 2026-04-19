@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash-lite";
 
 interface PromptRequest {
   mode?: "words" | "stats";
